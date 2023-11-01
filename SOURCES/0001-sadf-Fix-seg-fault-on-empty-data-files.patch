@@ -1,0 +1,40 @@
+From ce90f916fee2a39eb914f8b6b349adb76d100f75 Mon Sep 17 00:00:00 2001
+From: Sebastien GODARD <sysstat@users.noreply.github.com>
+Date: Sat, 13 Apr 2019 18:44:29 +0200
+Subject: [PATCH] sadf: Fix seg fault on empty data files
+
+Trying to display XML or JSON data (with sadf -x/-j) from a data file
+containing only RESTART records created a core dump.
+This patch fixes that.
+
+Signed-off-by: Sebastien GODARD <sysstat@users.noreply.github.com>
+---
+ sadf.c | 7 ++++---
+ 1 file changed, 4 insertions(+), 3 deletions(-)
+
+diff --git a/sadf.c b/sadf.c
+index 2d2c39c..5d558d3 100644
+--- a/sadf.c
++++ b/sadf.c
+@@ -963,14 +963,15 @@ void logic1_display_loop(int ifd, struct file_activity *file_actlst, char *file,
+ 			(tm_start.use && (datecmp(loctime, &tm_start) < 0)) ||
+ 			(tm_end.use && (datecmp(loctime, &tm_end) >= 0))));
+ 
+-		/* Save the first stats collected. Used for example in next_slice() function */
+-		copy_structures(act, id_seq, record_hdr, 2, 0);
+-
+ 		curr = 1;
+ 		cnt = count;
+ 		reset = TRUE;
+ 
+ 		if (!eosaf) {
++
++		        /* Save the first stats collected. Used for example in next_slice() function */
++		        copy_structures(act, id_seq, record_hdr, 2, 0);
++
+ 			do {
+ 				eosaf = read_next_sample(ifd, IGNORE_COMMENT | IGNORE_RESTART, curr,
+ 							 file, &rtype, tab, file_magic, file_actlst,
+-- 
+2.31.1
+

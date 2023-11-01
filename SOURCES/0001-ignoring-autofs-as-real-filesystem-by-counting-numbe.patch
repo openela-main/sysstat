@@ -1,0 +1,88 @@
+From 5b5339d06c4f50730e5cc679e0854ce716f39117 Mon Sep 17 00:00:00 2001
+From: Ondrej Dubaj <odubaj@redhat.com>
+Date: Thu, 28 Feb 2019 15:29:08 +0100
+Subject: [PATCH] ignoring autofs as real filesystem by counting number of
+ valid filesystems and getting all valid filesystems
+
+---
+ count.c    | 18 ++++++++++++++++--
+ rd_stats.c | 18 ++++++++++++++++--
+ 2 files changed, 32 insertions(+), 4 deletions(-)
+
+diff --git a/count.c b/count.c
+index 03469b0..6424baa 100644
+--- a/count.c
++++ b/count.c
+@@ -463,8 +463,8 @@ __nr_t get_usb_nr(void)
+ __nr_t get_filesystem_nr(void)
+ {
+ 	FILE *fp;
+-	char line[512], fs_name[MAX_FS_LEN], mountp[256];
+-	char *pos = 0;
++	char line[512], fs_name[MAX_FS_LEN], mountp[256], type[128];
++	char *pos = 0, *pos2 = 0;
+ 	__nr_t fs = 0;
+ 	int skip = 0, skip_next = 0;
+ 	struct statvfs buf;
+@@ -491,6 +491,20 @@ __nr_t get_filesystem_nr(void)
+ 			if (pos == NULL)
+ 				continue;
+ 
++			/* 	
++			 * Find second field separator position,
++			 * read filesystem type,
++			 * if filesystem type is autofs, skip it 
++			*/
++			memset(type, 0, sizeof(type));
++			pos2 = strchr(pos + 1, ' ');
++			if (pos2 == NULL)
++				continue;
++			
++			sscanf(pos2 + 1, "%127s", type);
++			if(strcmp(type, "autofs") == 0)
++				continue;
++
+ 			/* Read filesystem name and mount point */
+ 			sscanf(line, "%127s", fs_name);
+ 			sscanf(pos + 1, "%255s", mountp);
+diff --git a/rd_stats.c b/rd_stats.c
+index 61dc958..43e082c 100644
+--- a/rd_stats.c
++++ b/rd_stats.c
+@@ -2464,10 +2464,10 @@ __nr_t read_bus_usb_dev(struct stats_pwr_usb *st_pwr_usb, __nr_t nr_alloc)
+ __nr_t read_filesystem(struct stats_filesystem *st_filesystem, __nr_t nr_alloc)
+ {
+ 	FILE *fp;
+-	char line[512], fs_name[128], mountp[256];
++	char line[512], fs_name[128], mountp[256], type[128];
+ 	int skip = 0, skip_next = 0;
+ 	char *pos = 0;
+-	__nr_t fs_read = 0;
++	__nr_t fs_read = 0, *pos2 = 0;
+ 	struct stats_filesystem *st_filesystem_i;
+ 	struct statvfs buf;
+ 
+@@ -2491,6 +2491,20 @@ __nr_t read_filesystem(struct stats_filesystem *st_filesystem, __nr_t nr_alloc)
+ 			if (pos == NULL)
+ 				continue;
+ 
++			/* 	
++			 * Find second field separator position,
++			 * read filesystem type,
++			 * if filesystem type is autofs, skip it 
++			*/
++			memset(type, 0, sizeof(type));
++			pos2 = strchr(pos + 1, ' ');
++			if (pos2 == NULL)
++				continue;
++
++			sscanf(pos2 + 1, "%127s", type);
++			if(strcmp(type, "autofs") == 0)
++				continue;
++
+ 			/* Read current filesystem name */
+ 			sscanf(line, "%127s", fs_name);
+ 			/*
+-- 
+2.30.1 (Apple Git-130)
+

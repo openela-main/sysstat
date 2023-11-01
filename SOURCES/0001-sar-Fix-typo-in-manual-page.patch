@@ -1,0 +1,26 @@
+From 83dac62520afe3fa92b53393f438c9fb9c492525 Mon Sep 17 00:00:00 2001
+From: Sebastien GODARD <sysstat@users.noreply.github.com>
+Date: Sat, 6 Oct 2018 18:12:54 +0200
+Subject: [PATCH] sar: Fix typo in manual page
+
+Signed-off-by: Sebastien GODARD <sysstat@users.noreply.github.com>
+---
+ man/sar.in | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/man/sar.in b/man/sar.in
+index c45ee54..925c5f5 100644
+--- a/man/sar.in
++++ b/man/sar.in
+@@ -373,7 +373,7 @@ The following values are displayed:
+ .B MBfsfree
+ .RS
+ .RS
+-Total amount a free space in megabytes (including space available only to privileged user).
++Total amount of free space in megabytes (including space available only to privileged user).
+ .RE
+ 
+ .B MBfsused
+-- 
+2.31.1
+
