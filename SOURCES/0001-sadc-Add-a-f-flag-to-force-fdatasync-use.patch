@@ -1,0 +1,101 @@
+From 560d88cb5a16636acb0e350d6997fe915cc4253e Mon Sep 17 00:00:00 2001
+From: Kyle Walker <kwalker@redhat.com>
+Date: Wed, 30 Jan 2019 07:50:55 -0500
+Subject: [PATCH] sadc: Add a -f flag to force fdatasync() use
+
+For quite some time, the sadc utility has not used fdatasync() when writing
+stat information to disk. This resulted in instances where data files could
+be corrupted or entries lost if a system encountered a sudden reset
+condition. This change adds a "-f" flag which can be used to bring back the
+previous behaviour if end users require it.
+
+Note, the fdatasync() lowers the likelihood of lost data, but does so at
+the expense of performance within the write operation.
+---
+ man/sadc.in |  8 +++++++-
+ sa.h        |  2 ++
+ sadc.c      | 13 ++++++++++++-
+ 3 files changed, 21 insertions(+), 2 deletions(-)
+
+diff --git a/man/sadc.in b/man/sadc.in
+index 2d754b71..ce8ee230 100644
+--- a/man/sadc.in
++++ b/man/sadc.in
+@@ -4,7 +4,7 @@ sadc \- System activity data collector.
+ .SH SYNOPSIS
+ .B @SA_LIB_DIR@/sadc [ -C
+ .I comment
+-.B ] [ -D ] [ -F ] [ -L ] [ -V ] [ -S { DISK | INT | IPV6 | POWER | SNMP | XDISK | ALL | XALL [,...] } ] [
++.B ] [ -D ] [ -F ] [ -L ] [ -V ] [ -f ] [ -S { DISK | INT | IPV6 | POWER | SNMP | XDISK | ALL | XALL [,...] } ] [
+ .I interval
+ .B [
+ .I count
+@@ -106,6 +106,12 @@ then it will be truncated. This may be useful for daily data files
+ created by an older version of
+ .B sadc
+ and whose format is no longer compatible with current one.
++.IP -f
++fdatasync() will be used to ensure data is written to disk. This differs
++from the normal operation in that a sudden system reset is less likely to
++result in the saDD datafiles being corrupted. However, this is at the
++expense of performance within the sadc process as forward progress will be
++blocked while data is written to underlying disk instead of just to cache.
+ .IP -L
+ .B sadc
+ will try to get an exclusive lock on the
+diff --git a/sa.h b/sa.h
+index 1cd0c3d9..d3236f7c 100644
+--- a/sa.h
++++ b/sa.h
+@@ -110,5 +110,6 @@
+ #define S_F_HUMAN_READ		0x01000000
+ #define S_F_ZERO_OMIT		0x02000000
++#define S_F_FDATASYNC		0x08000000
+ 
+ #define WANT_SINCE_BOOT(m)		(((m) & S_F_SINCE_BOOT)   == S_F_SINCE_BOOT)
+ #define WANT_SA_ROTAT(m)		(((m) & S_F_SA_ROTAT)     == S_F_SA_ROTAT)
+@@ -138,5 +139,6 @@
+ #define PACK_VIEWS(m)			(((m) & S_F_SVG_PACKED) == S_F_SVG_PACKED)
+ #define DISPLAY_HUMAN_READ(m)		(((m) & S_F_HUMAN_READ) == S_F_HUMAN_READ)
++#define FDATASYNC(m)			(((m) & S_F_FDATASYNC)    == S_F_FDATASYNC)
+ 
+ #define AO_F_NULL		0x00000000
+ 
+diff --git a/sadc.c b/sadc.c
+index 826f4aed..139d490a 100644
+--- a/sadc.c
++++ b/sadc.c
+@@ -92,7 +92,7 @@ void usage(char *progname)
+ 		progname);
+ 
+ 	fprintf(stderr, _("Options are:\n"
+-			  "[ -C <comment> ] [ -D ] [ -F ] [ -L ] [ -V ]\n"
++			  "[ -C <comment> ] [ -D ] [ -F ] [ -L ] [ -V ] [ -f ]\n"
+ 			  "[ -S { INT | DISK | IPV6 | POWER | SNMP | XDISK | ALL | XALL } ]\n"));
+ 	exit(1);
+ }
+@@ -1109,6 +1109,13 @@ void rw_sa_stat_loop(long count, int stdfd, int ofd, char ofile[],
+ 
+ 		/* Flush data */
+ 		fflush(stdout);
++		if (FDATASYNC(flags)) {
++			/* If indicated, sync the data to media */
++			if (fdatasync(ofd) < 0) {
++				perror("fdatasync");
++				exit(4);
++			}
++		}
+ 
+ 		if (count > 0) {
+ 			count--;
+@@ -1206,6 +1213,10 @@ int main(int argc, char **argv)
+ 			optz = 1;
+ 		}
+ 
++		else if (!strcmp(argv[opt], "-f")) {
++			flags |= S_F_FDATASYNC;
++		}
++
+ 		else if (!strcmp(argv[opt], "-C")) {
+ 			if (!argv[++opt]) {
+ 				usage(argv[0]);
