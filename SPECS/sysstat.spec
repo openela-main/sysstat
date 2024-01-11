@@ -1,7 +1,7 @@
 Summary: Collection of performance monitoring tools for Linux
 Name: sysstat
 Version: 11.7.3
-Release: 9%{?dist}
+Release: 11%{?dist}
 License: GPLv2+
 Group: Applications/System
 URL: http://sebastien.godard.pagesperso-orange.fr/
@@ -19,7 +19,8 @@ Patch04: 0001-sadf-Fix-seg-fault-on-empty-data-files.patch
 Patch05: 0001-sar-Fix-typo-in-manual-page.patch
 Patch06: CVE-2022-39377-arithmetic-overflow-in-allocate-structures-on-32-bit-systems.patch
 Patch07: 0001-sadc-Add-a-f-flag-to-force-fdatasync-use.patch
-
+Patch08: 0001-mpstat-incorrect-cpu-usage-iowait.patch
+Patch09: CVE-2023-33204.patch
 BuildRequires: gettext, lm_sensors-devel, systemd
 
 Requires: findutils, xz
@@ -54,6 +55,8 @@ The cifsiostat command reports I/O statistics for CIFS file systems.
 %patch05 -p1
 %patch06 -p1
 %patch07 -p1
+%patch08 -p1
+%patch09 -p1
 
 %build
 export CFLAGS="$RPM_OPT_FLAGS -Wl,-z,now -specs=/usr/lib/rpm/redhat/redhat-hardened-ld"
@@ -102,6 +105,12 @@ fi
 %{_localstatedir}/log/sa
 
 %changelog
+* Fri Jul 07 2023 psimovec <psimovec@redhat.com> - 11.7.3-11
+- fix the arithmetic overflow in allocate_structures() that is still possible on some 32 bit systems (CVE-2023-33204)
+
+* Thu Mar 16 2023 Lukáš Zaoral <lzaoral@redhat.com> - 11.7.3-10
+- Fix incorrect CPU usage on ALL CPU field for iowait in mpstat (#2178863)
+
 * Wed Dec 14 2022 Lukáš Zaoral <lzaoral@redhat.com> - 11.7.3-9
 - add -f flag to force fdatasync() after sa file update (#2153192)
 
