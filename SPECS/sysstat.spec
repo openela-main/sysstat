@@ -1,7 +1,7 @@
 Summary: Collection of performance monitoring tools for Linux
 Name: sysstat
 Version: 12.5.4
-Release: 5%{?dist}
+Release: 7%{?dist}
 License: GPLv2+
 URL: http://sebastien.godard.pagesperso-orange.fr/
 Source: https://github.com/sysstat/sysstat/archive/v%{version}.tar.gz
@@ -14,6 +14,10 @@ Source2: colorsysstat.sh
 Patch1:  sysstat-12.5.4-CVE-2022-39377.patch
 # {cifsio,io,mp,pid}stat --dec and sar --dec report values from single alphabet other than defined (bz2080650)
 Patch2:  sysstat-12.5.4-bz2080650.patch
+# check_overflow() function can work incorrectly that lead to an overflow (CVE-2023-33204)
+Patch3:  sysstat-12.5.4-CVE-2023-33204.patch
+# add description of UMASK to man/systat.in (bz2216805)
+Patch4:  sysstat-12.5.4-bz2216805.patch
 
 BuildRequires: make
 BuildRequires: gcc, gettext, lm_sensors-devel, pcp-libs-devel, systemd, git
@@ -91,6 +95,12 @@ fi
 %{_localstatedir}/log/sa
 
 %changelog
+* Thu Jul 27 2023 Lukáš Zaoral <lzaoral@redhat.com> - 12.5.4-7
+- add description of UMASK to man/systat.in (rhbz#2216805)
+
+* Fri Jun 30 2023 Pavel Šimovec <psimovec@redhat.com> - 12.5.4-6
+- fix the arithmetic overflow in allocate_structures() that is still possible on some 32 bit systems (CVE-2023-33204)
+
 * Tue Feb 21 2023 Lukáš Zaoral <lzaoral@redhat.com> - 12.5.4-5
 - Fix --dec argument validation (rhbz#2080650)
 
