@@ -1,0 +1,28 @@
+From 06e226703bee77e507f9f480807e230f677f0cb9 Mon Sep 17 00:00:00 2001
+From: Sdrkun <shanzhikun@gmail.com>
+Date: Tue, 28 Apr 2020 10:31:54 -0400
+Subject: [PATCH] sa1: fix sar error when the directory var/log/sa was removed.
+
+Signed-off-by: Sdrkun <shanzhikun@gmail.com>
+
+Cherry-picked-by: Lukáš Zaoral <lzaoral@redhat.com>
+Upstream-commit: 06e226703bee77e507f9f480807e230f677f0cb9
+---
+ sa1.in | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/sa1.in b/sa1.in
+index e908ad33..e9047d06 100644
+--- a/sa1.in
++++ b/sa1.in
+@@ -16,6 +16,7 @@
+ 
+ [ -r ${SYSCONFIG_DIR}/sysstat ] && . ${SYSCONFIG_DIR}/sysstat
+ [ -d ${SA_DIR} ] || SA_DIR=@SA_DIR@
++[ -d @SA_DIR@ ] || mkdir @SA_DIR@
+ 
+ if [ ${HISTORY} -gt 28 ]
+ then
+-- 
+2.43.0
+

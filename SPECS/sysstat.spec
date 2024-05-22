@@ -1,7 +1,7 @@
 Summary: Collection of performance monitoring tools for Linux
 Name: sysstat
 Version: 11.7.3
-Release: 11%{?dist}
+Release: 12%{?dist}
 License: GPLv2+
 Group: Applications/System
 URL: http://sebastien.godard.pagesperso-orange.fr/
@@ -21,6 +21,7 @@ Patch06: CVE-2022-39377-arithmetic-overflow-in-allocate-structures-on-32-bit-sys
 Patch07: 0001-sadc-Add-a-f-flag-to-force-fdatasync-use.patch
 Patch08: 0001-mpstat-incorrect-cpu-usage-iowait.patch
 Patch09: CVE-2023-33204.patch
+Patch10: 0001-sa1-fix-sar-error-when-the-directory-var-log-sa-was-.patch
 BuildRequires: gettext, lm_sensors-devel, systemd
 
 Requires: findutils, xz
@@ -57,6 +58,7 @@ The cifsiostat command reports I/O statistics for CIFS file systems.
 %patch07 -p1
 %patch08 -p1
 %patch09 -p1
+%patch10 -p1
 
 %build
 export CFLAGS="$RPM_OPT_FLAGS -Wl,-z,now -specs=/usr/lib/rpm/redhat/redhat-hardened-ld"
@@ -105,6 +107,9 @@ fi
 %{_localstatedir}/log/sa
 
 %changelog
+* Wed Dec 13 2023 Lukáš Zaoral <lzaoral@redhat.com> - 11.7.3-12
+- fix sar error when the directory /var/log/sa was removed (RHEL-19301)
+
 * Fri Jul 07 2023 psimovec <psimovec@redhat.com> - 11.7.3-11
 - fix the arithmetic overflow in allocate_structures() that is still possible on some 32 bit systems (CVE-2023-33204)
 
