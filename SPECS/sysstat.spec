@@ -1,7 +1,7 @@
 Summary: Collection of performance monitoring tools for Linux
 Name: sysstat
 Version: 11.7.3
-Release: 12%{?dist}
+Release: 13%{?dist}
 License: GPLv2+
 Group: Applications/System
 URL: http://sebastien.godard.pagesperso-orange.fr/
@@ -20,8 +20,14 @@ Patch05: 0001-sar-Fix-typo-in-manual-page.patch
 Patch06: CVE-2022-39377-arithmetic-overflow-in-allocate-structures-on-32-bit-systems.patch
 Patch07: 0001-sadc-Add-a-f-flag-to-force-fdatasync-use.patch
 Patch08: 0001-mpstat-incorrect-cpu-usage-iowait.patch
-Patch09: CVE-2023-33204.patch
-Patch10: 0001-sa1-fix-sar-error-when-the-directory-var-log-sa-was-.patch
+Patch09: 0001-sa1-fix-sar-error-when-the-directory-var-log-sa-was-.patch
+
+# https://github.com/sysstat/sysstat/commit/c9a11d35df4aecfcf22aef827bac6cd57def9d4e
+# https://github.com/sysstat/sysstat/commit/44f1dc159242c1e434a3b836cda49f084c5a96cc
+Patch10: 0001-Add-more-overflow-checks.patch
+# https://github.com/sysstat/sysstat/commit/6f8dc568e6ab072bb8205b732f04e685bf9237c0
+Patch11: CVE-2023-33204.patch
+
 BuildRequires: gettext, lm_sensors-devel, systemd
 
 Requires: findutils, xz
@@ -59,6 +65,7 @@ The cifsiostat command reports I/O statistics for CIFS file systems.
 %patch08 -p1
 %patch09 -p1
 %patch10 -p1
+%patch11 -p1
 
 %build
 export CFLAGS="$RPM_OPT_FLAGS -Wl,-z,now -specs=/usr/lib/rpm/redhat/redhat-hardened-ld"
@@ -107,10 +114,14 @@ fi
 %{_localstatedir}/log/sa
 
 %changelog
+* Tue May 07 2024 Lukáš Zaoral <lzaoral@redhat.com> - 11.7.3-13
+- fix memory allocation errors with malformed sa files (RHEL-35511)
+- reorder patches to prevent errors during their application
+
 * Wed Dec 13 2023 Lukáš Zaoral <lzaoral@redhat.com> - 11.7.3-12
 - fix sar error when the directory /var/log/sa was removed (RHEL-19301)
 
-* Fri Jul 07 2023 psimovec <psimovec@redhat.com> - 11.7.3-11
+* Fri Jul 07 2023 Pavel Šimovec <psimovec@redhat.com> - 11.7.3-11
 - fix the arithmetic overflow in allocate_structures() that is still possible on some 32 bit systems (CVE-2023-33204)
 
 * Thu Mar 16 2023 Lukáš Zaoral <lzaoral@redhat.com> - 11.7.3-10
