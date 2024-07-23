@@ -1,0 +1,235 @@
+From c9a11d35df4aecfcf22aef827bac6cd57def9d4e Mon Sep 17 00:00:00 2001
+From: Sebastien GODARD <sysstat@users.noreply.github.com>
+Date: Sun, 23 Oct 2022 16:22:28 +0200
+Subject: [PATCH] Add more overflow checks
+
+Signed-off-by: Sebastien GODARD <sysstat@users.noreply.github.com>
+---
+ common.c    | 45 +++++++++++++++++++++------------------------
+ common.h    |  4 ++--
+ sa_common.c |  9 +++++++--
+ sadc.c      |  6 ++++++
+ 4 files changed, 36 insertions(+), 28 deletions(-)
+
+diff --git a/common.c b/common.c
+index 1a84b052..27249772 100644
+--- a/common.c
++++ b/common.c
+@@ -415,6 +415,27 @@ int check_dir(char *dirname)
+ 	return 0;
+ }
+ 
++/*
++ * **************************************************************************
++ * Check if the multiplication of the 3 values may be greater than UINT_MAX.
++ *
++ * IN:
++ * @val1	First value.
++ * @val2	Second value.
++ * @val3	Third value.
++ ***************************************************************************
++ */
++void check_overflow(unsigned long long val1, unsigned long long val2,
++		    unsigned long long val3)
++{
++	if (val1 * val2 * val3 > UINT_MAX) {
++#ifdef DEBUG
++		fprintf(stderr, "%s: Overflow detected (%llu). Aborting...\n",
++			__FUNCTION__, val1 * val2 * val3);
++#endif
++	exit(4);
++		}
++}
+ 
+ #ifndef SOURCE_SADC
+ /*
+@@ -1656,28 +1677,4 @@ int parse_values(char *strargv, unsigned char bitmap[], int max_val, const char
+ 	return 0;
+ }
+ 
+-/*
+- ***************************************************************************
+- * Check if the multiplication of the 3 values may be greater than UINT_MAX.
+- *
+- * IN:
+- * @val1	First value.
+- * @val2	Second value.
+- * @val3	Third value.
+- ***************************************************************************
+- */
+-void check_overflow(size_t val1, size_t val2, size_t val3)
+-{
+-	if ((unsigned long long) val1 *
+-	    (unsigned long long) val2 *
+-	    (unsigned long long) val3 > UINT_MAX) {
+-#ifdef DEBUG
+-		fprintf(stderr, "%s: Overflow detected (%llu). Aborting...\n",
+-			__FUNCTION__,
+-			(unsigned long long) val1 * (unsigned long long) val2 *	(unsigned long long) val3);
+-#endif
+-	exit(4);
+-	}
+-}
+-
+ #endif /* SOURCE_SADC undefined */
+diff --git a/common.h b/common.h
+index e8ab98ab..715b2da2 100644
+--- a/common.h
++++ b/common.h
+@@ -258,10 +258,10 @@ int get_wwnid_from_pretty
+ 	(char *, unsigned long long *, unsigned int *);
+ int check_dir
+ 	(char *);
++void check_overflow
++	(unsigned long long, unsigned long long, unsigned long long);
+ 
+ #ifndef SOURCE_SADC
+-void check_overflow
+-	(size_t, size_t, size_t);
+ int count_bits
+ 	(void *, int);
+ int count_csvalues
+diff --git a/sa_common.c b/sa_common.c
+index b2cec4ad..3460257a 100644
+--- a/sa_common.c
++++ b/sa_common.c
+@@ -463,8 +463,9 @@ void allocate_structures(struct activity *act[])
+ 		if (act[i]->nr_ini > 0) {
+ 
+ 			/* Look for a possible overflow */
+-			check_overflow((size_t) act[i]->msize, (size_t) act[i]->nr_ini,
+-				       (size_t) act[i]->nr2);
++			check_overflow((unsigned long long) act[i]->msize,
++				       (unsigned long long) act[i]->nr_ini,
++				       (unsigned long long) act[i]->nr2);
+ 
+ 			for (j = 0; j < 3; j++) {
+ 				SREALLOC(act[i]->buf[j], void,
+@@ -529,6 +530,10 @@ void reallocate_all_buffers(struct activity *a, __nr_t nr_min)
+ 		while (nr_realloc < nr_min);
+ 	}
+ 
++	/* Look for a possible overflow */
++	check_overflow((unsigned long long) a->msize, nr_realloc,
++		       (unsigned long long) a->nr2);
++
+ 	for (j = 0; j < 3; j++) {
+ 		SREALLOC(a->buf[j], void,
+ 			(size_t) a->msize * nr_realloc * (size_t) a->nr2);
+diff --git a/sadc.c b/sadc.c
+index 3458d089..123bf8e0 100644
+--- a/sadc.c
++++ b/sadc.c
+@@ -360,6 +360,12 @@ void sa_sys_init(void)
+ 		}
+ 
+ 		if (IS_COLLECTED(act[i]->options) && (act[i]->nr_ini > 0)) {
++
++			/* Look for a possible overflow */
++			check_overflow((unsigned long long) act[i]->msize,
++				       (unsigned long long) act[i]->nr_ini,
++				       (unsigned long long) act[i]->nr2);
++
+ 			/* Allocate structures for current activity (using nr_ini and nr2 results) */
+ 			SREALLOC(act[i]->_buf0, void,
+ 				 (size_t) act[i]->msize * (size_t) act[i]->nr_ini * (size_t) act[i]->nr2);
+
+From 44f1dc159242c1e434a3b836cda49f084c5a96cc Mon Sep 17 00:00:00 2001
+From: Sebastien GODARD <sysstat@users.noreply.github.com>
+Date: Sun, 6 Nov 2022 15:48:16 +0100
+Subject: [PATCH] Make sure values to be compared are unsigned integers
+
+It seems safer to make sure that input values are unsigned int before
+casting them to unsigned long long and making the comparison.
+
+Signed-off-by: Sebastien GODARD <sysstat@users.noreply.github.com>
+---
+ common.c    | 10 ++++++----
+ common.h    |  2 +-
+ sa_common.c | 10 +++++-----
+ sadc.c      |  6 +++---
+ 4 files changed, 15 insertions(+), 13 deletions(-)
+
+diff --git a/common.c b/common.c
+index 27249772..3b7fdcd5 100644
+--- a/common.c
++++ b/common.c
+@@ -425,13 +425,15 @@ int check_dir(char *dirname)
+  * @val3	Third value.
+  ***************************************************************************
+  */
+-void check_overflow(unsigned long long val1, unsigned long long val2,
+-		    unsigned long long val3)
++void check_overflow(unsigned int val1, unsigned int val2,
++		    unsigned int val3)
+ {
+-	if (val1 * val2 * val3 > UINT_MAX) {
++	if ((unsigned long long) val1 * (unsigned long long) val2 *
++	    (unsigned long long) val3 > UINT_MAX) {
+ #ifdef DEBUG
+ 		fprintf(stderr, "%s: Overflow detected (%llu). Aborting...\n",
+-			__FUNCTION__, val1 * val2 * val3);
++			__FUNCTION__, (unsigned long long) val1 * (unsigned long long) val2 *
++			(unsigned long long) val3);
+ #endif
+ 	exit(4);
+ 		}
+diff --git a/common.h b/common.h
+index 715b2da2..fc8a1a0d 100644
+--- a/common.h
++++ b/common.h
+@@ -259,7 +259,7 @@ int get_wwnid_from_pretty
+ int check_dir
+ 	(char *);
+ void check_overflow
+-	(unsigned long long, unsigned long long, unsigned long long);
++	(unsigned int, unsigned int, unsigned int);
+ 
+ #ifndef SOURCE_SADC
+ int count_bits
+diff --git a/sa_common.c b/sa_common.c
+index 3460257a..0ca8b039 100644
+--- a/sa_common.c
++++ b/sa_common.c
+@@ -463,9 +463,9 @@ void allocate_structures(struct activity *act[])
+ 		if (act[i]->nr_ini > 0) {
+ 
+ 			/* Look for a possible overflow */
+-			check_overflow((unsigned long long) act[i]->msize,
+-				       (unsigned long long) act[i]->nr_ini,
+-				       (unsigned long long) act[i]->nr2);
++			check_overflow((unsigned int) act[i]->msize,
++				       (unsigned int) act[i]->nr_ini,
++				       (unsigned int) act[i]->nr2);
+ 
+ 			for (j = 0; j < 3; j++) {
+ 				SREALLOC(act[i]->buf[j], void,
+@@ -531,8 +531,8 @@ void reallocate_all_buffers(struct activity *a, __nr_t nr_min)
+ 	}
+ 
+ 	/* Look for a possible overflow */
+-	check_overflow((unsigned long long) a->msize, nr_realloc,
+-		       (unsigned long long) a->nr2);
++	check_overflow((unsigned int) a->msize, (unsigned int) nr_realloc,
++		       (unsigned int) a->nr2);
+ 
+ 	for (j = 0; j < 3; j++) {
+ 		SREALLOC(a->buf[j], void,
+diff --git a/sadc.c b/sadc.c
+index 123bf8e0..40a1e15b 100644
+--- a/sadc.c
++++ b/sadc.c
+@@ -362,9 +362,9 @@ void sa_sys_init(void)
+ 		if (IS_COLLECTED(act[i]->options) && (act[i]->nr_ini > 0)) {
+ 
+ 			/* Look for a possible overflow */
+-			check_overflow((unsigned long long) act[i]->msize,
+-				       (unsigned long long) act[i]->nr_ini,
+-				       (unsigned long long) act[i]->nr2);
++			check_overflow((unsigned int) act[i]->msize,
++				       (unsigned int) act[i]->nr_ini,
++				       (unsigned int) act[i]->nr2);
+ 
+ 			/* Allocate structures for current activity (using nr_ini and nr2 results) */
+ 			SREALLOC(act[i]->_buf0, void,
+

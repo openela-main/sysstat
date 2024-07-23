@@ -1,7 +1,7 @@
 Summary: Collection of performance monitoring tools for Linux
 Name: sysstat
 Version: 12.5.4
-Release: 7%{?dist}
+Release: 8%{?dist}
 License: GPLv2+
 URL: http://sebastien.godard.pagesperso-orange.fr/
 Source: https://github.com/sysstat/sysstat/archive/v%{version}.tar.gz
@@ -14,10 +14,15 @@ Source2: colorsysstat.sh
 Patch1:  sysstat-12.5.4-CVE-2022-39377.patch
 # {cifsio,io,mp,pid}stat --dec and sar --dec report values from single alphabet other than defined (bz2080650)
 Patch2:  sysstat-12.5.4-bz2080650.patch
+# fix allocation errors with malformed sa files (RHEL-35684)
+# https://github.com/sysstat/sysstat/commit/c9a11d35df4aecfcf22aef827bac6cd57def9d4e
+# https://github.com/sysstat/sysstat/commit/44f1dc159242c1e434a3b836cda49f084c5a96cc
+Patch3:  sysstat-12.5.4-RHEL-35684.patch
 # check_overflow() function can work incorrectly that lead to an overflow (CVE-2023-33204)
-Patch3:  sysstat-12.5.4-CVE-2023-33204.patch
+# https://github.com/sysstat/sysstat/commit/6f8dc568e6ab072bb8205b732f04e685bf9237c0
+Patch4:  sysstat-12.5.4-CVE-2023-33204.patch
 # add description of UMASK to man/systat.in (bz2216805)
-Patch4:  sysstat-12.5.4-bz2216805.patch
+Patch5:  sysstat-12.5.4-bz2216805.patch
 
 BuildRequires: make
 BuildRequires: gcc, gettext, lm_sensors-devel, pcp-libs-devel, systemd, git
@@ -95,6 +100,10 @@ fi
 %{_localstatedir}/log/sa
 
 %changelog
+* Tue May 07 2024 Lukáš Zaoral <lzaoral@redhat.com> - 12.5.4-8
+- fix allocation errors with malformed sa files (RHEL-35684)
+- reorder patches to prevent errors during their application
+
 * Thu Jul 27 2023 Lukáš Zaoral <lzaoral@redhat.com> - 12.5.4-7
 - add description of UMASK to man/systat.in (rhbz#2216805)
 
