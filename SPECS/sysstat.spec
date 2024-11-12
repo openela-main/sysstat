@@ -1,7 +1,7 @@
 Summary: Collection of performance monitoring tools for Linux
 Name: sysstat
 Version: 12.5.4
-Release: 8%{?dist}
+Release: 9%{?dist}
 License: GPLv2+
 URL: http://sebastien.godard.pagesperso-orange.fr/
 Source: https://github.com/sysstat/sysstat/archive/v%{version}.tar.gz
@@ -23,6 +23,9 @@ Patch3:  sysstat-12.5.4-RHEL-35684.patch
 Patch4:  sysstat-12.5.4-CVE-2023-33204.patch
 # add description of UMASK to man/systat.in (bz2216805)
 Patch5:  sysstat-12.5.4-bz2216805.patch
+# don't cap SVG graph output at 100% (RHEL-39002)
+# https://github.com/sysstat/sysstat/commit/808f2ef2fe7a92f8bb510ef872801e67cc600c36
+Patch6:  sysstat-12.5.4-RHEL-39002.patch
 
 BuildRequires: make
 BuildRequires: gcc, gettext, lm_sensors-devel, pcp-libs-devel, systemd, git
@@ -100,6 +103,9 @@ fi
 %{_localstatedir}/log/sa
 
 %changelog
+* Tue Jul 30 2024 Lukáš Zaoral <lzaoral@redhat.com> - 12.5.4-9
+- don't cap SVG graph output at 100% (RHEL-39002)
+
 * Tue May 07 2024 Lukáš Zaoral <lzaoral@redhat.com> - 12.5.4-8
 - fix allocation errors with malformed sa files (RHEL-35684)
 - reorder patches to prevent errors during their application

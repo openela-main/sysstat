@@ -1,0 +1,218 @@
+From 808f2ef2fe7a92f8bb510ef872801e67cc600c36 Mon Sep 17 00:00:00 2001
+From: Sebastien GODARD <sysstat@users.noreply.github.com>
+Date: Tue, 28 May 2024 10:36:27 +0200
+Subject: [PATCH] sadf: Don't cap SVG graph output at 100% (#388)
+
+Don't cap SVG graph output at 100% when values greater than 100% are
+possible. Such a possibility exists for overcommited memory (displayed
+as %commit with "sar -r").
+
+Note: I don't think such other metrics exist. Tell me if I'm wrong.
+
+Signed-off-by: Sebastien GODARD <sysstat@users.noreply.github.com>
+
+Cherry-picked-by: Lukáš Zaoral <lzaoral@redhat.com>
+Upstream-commit: 808f2ef2fe7a92f8bb510ef872801e67cc600c36
+---
+ svg_stats.c | 47 +++++++++++++++++++++++++----------------------
+ 1 file changed, 25 insertions(+), 22 deletions(-)
+
+diff --git a/svg_stats.c b/svg_stats.c
+index 821869d..7d136ad 100644
+--- a/svg_stats.c
++++ b/svg_stats.c
+@@ -394,6 +394,7 @@ void lniappend(unsigned long long timetag, unsigned long long value, char **out,
+  * @outsize	Size of array of chars for current graph definition.
+  * @dt		Interval of time in seconds between current and previous
+  * 		sample.
++ * @hval	TRUE if value may be greater than 100%.
+  *
+  * OUT:
+  * @out		Pointer on array of chars for current graph definition that
+@@ -403,7 +404,7 @@ void lniappend(unsigned long long timetag, unsigned long long value, char **out,
+  ***************************************************************************
+  */
+ void brappend(unsigned long long timetag, double offset, double value, char **out,
+-	      int *outsize, unsigned long long dt)
++	      int *outsize, unsigned long long dt, int hval)
+ {
+ 	char data[128];
+ 	unsigned long long t = 0;
+@@ -413,15 +414,17 @@ void brappend(unsigned long long timetag, double offset, double value, char **ou
+ 		/* Don't draw a flat rectangle! */
+ 		return;
+ 	if (dt < timetag) {
+-		t = timetag -dt;
++		t = timetag - dt;
+ 	}
+ 
+ 	snprintf(data, 128, "<rect x=\"%llu\" y=\"%.2f\" height=\"%.2f\" width=\"%llu\"/>",
+-		 t, MINIMUM(offset, 100.0), MINIMUM(value, (100.0 - offset)), dt);
++		 t,
++		 hval ? offset : MINIMUM(offset, 100.0),
++		 hval ? value : MINIMUM(value, (100.0 - offset)),
++		 dt);
+ 	data[127] = '\0';
+ 
+ 	save_svg_data(data, out, outsize);
+-
+ }
+ 
+ /*
+@@ -460,7 +463,7 @@ void cpuappend(unsigned long long timetag, double *offset, double value, char **
+ 		*spmax = value;
+ 	}
+ 	/* Prepare additional graph definition data */
+-	brappend(timetag, *offset, value, out, outsize, dt);
++	brappend(timetag, *offset, value, out, outsize, dt, FALSE);
+ 
+ 	*offset += value;
+ }
+@@ -1881,25 +1884,25 @@ __print_funct_t svg_print_memory_stats(struct activity *a, int curr, int action,
+ 			 0.0,
+ 			 smc->tlmkb ?
+ 			 SP_VALUE(nousedmem, smc->tlmkb, smc->tlmkb) : 0.0,
+-			 out + 3, outsize + 3, svg_p->dt);
++			 out + 3, outsize + 3, svg_p->dt, FALSE);
+ 		/* %commit */
+ 		brappend(record_hdr->ust_time - svg_p->ust_time_ref,
+ 			 0.0,
+ 			 (smc->tlmkb + smc->tlskb) ?
+ 			 SP_VALUE(0, smc->comkb, smc->tlmkb + smc->tlskb) : 0.0,
+-			 out + 7, outsize + 7, svg_p->dt);
++			 out + 7, outsize + 7, svg_p->dt, TRUE);
+ 		/* %swpused */
+ 		brappend(record_hdr->ust_time - svg_p->ust_time_ref,
+ 			 0.0,
+ 			 smc->tlskb ?
+ 			 SP_VALUE(smc->frskb, smc->tlskb, smc->tlskb) : 0.0,
+-			 out + 19, outsize + 19, svg_p->dt);
++			 out + 19, outsize + 19, svg_p->dt, FALSE);
+ 		/* %swpcad */
+ 		brappend(record_hdr->ust_time - svg_p->ust_time_ref,
+ 			 0.0,
+ 			 (smc->tlskb - smc->frskb) ?
+ 			 SP_VALUE(0, smc->caskb, smc->tlskb - smc->frskb) : 0.0,
+-			 out + 20, outsize + 20, svg_p->dt);
++			 out + 20, outsize + 20, svg_p->dt, FALSE);
+ 	}
+ 
+ 	if (action & F_END) {
+@@ -2305,7 +2308,7 @@ __print_funct_t svg_print_disk_stats(struct activity *a, int curr, int action, s
+ 			/* %util */
+ 			brappend(record_hdr->ust_time - svg_p->ust_time_ref,
+ 				 0.0, xds.util / 10.0,
+-				 out + pos + 7, outsize + pos + 7, svg_p->dt);
++				 out + pos + 7, outsize + pos + 7, svg_p->dt, FALSE);
+ 		}
+ 
+ 		/* Mark devices not seen here as now unregistered */
+@@ -2514,7 +2517,7 @@ __print_funct_t svg_print_net_dev_stats(struct activity *a, int curr, int action
+ 			/* %ifutil */
+ 			brappend(record_hdr->ust_time - svg_p->ust_time_ref,
+ 				 0.0, ifutil,
+-				 out + pos + 7, outsize + pos + 7, svg_p->dt);
++				 out + pos + 7, outsize + pos + 7, svg_p->dt, FALSE);
+ 		}
+ 
+ 		/* Mark interfaces not seen here as now unregistered */
+@@ -4492,7 +4495,7 @@ __print_funct_t svg_print_pwr_temp_stats(struct activity *a, int curr, int actio
+ 			/* %temp */
+ 			brappend(record_hdr->ust_time - svg_p->ust_time_ref,
+ 				 0.0, tval,
+-				 out + TEMP_ARRAY_SZ * i + 1, outsize + TEMP_ARRAY_SZ * i + 1, svg_p->dt);
++				 out + TEMP_ARRAY_SZ * i + 1, outsize + TEMP_ARRAY_SZ * i + 1, svg_p->dt, FALSE);
+ 		}
+ 	}
+ 
+@@ -4592,7 +4595,7 @@ __print_funct_t svg_print_pwr_in_stats(struct activity *a, int curr, int action,
+ 			/* %in */
+ 			brappend(record_hdr->ust_time - svg_p->ust_time_ref,
+ 				 0.0, tval,
+-				 out + IN_ARRAY_SZ * i + 1, outsize + IN_ARRAY_SZ * i + 1, svg_p->dt);
++				 out + IN_ARRAY_SZ * i + 1, outsize + IN_ARRAY_SZ * i + 1, svg_p->dt, FALSE);
+ 		}
+ 	}
+ 
+@@ -4701,7 +4704,7 @@ __print_funct_t svg_print_huge_stats(struct activity *a, int curr, int action, s
+ 		/* %hugused */
+ 		brappend(record_hdr->ust_time - svg_p->ust_time_ref,
+ 			 0.0, tval,
+-			 out + 4, outsize + 4, svg_p->dt);
++			 out + 4, outsize + 4, svg_p->dt, FALSE);
+ 	}
+ 
+ 	if (action & F_END) {
+@@ -4894,13 +4897,13 @@ __print_funct_t svg_print_filesystem_stats(struct activity *a, int curr, int act
+ 				 0.0,
+ 				 sfc->f_blocks ?
+ 				 SP_VALUE(sfc->f_bavail, sfc->f_blocks, sfc->f_blocks) : 0.0,
+-				 out + pos + 2, outsize + pos + 2, svg_p->dt);
++				 out + pos + 2, outsize + pos + 2, svg_p->dt, FALSE);
+ 			/* %fsused */
+ 			brappend(record_hdr->ust_time - svg_p->ust_time_ref,
+ 				 0.0,
+ 				 sfc->f_blocks ?
+ 				 SP_VALUE(sfc->f_bfree, sfc->f_blocks, sfc->f_blocks) : 0.0,
+-				 out + pos + 3, outsize + pos + 3, svg_p->dt);
++				 out + pos + 3, outsize + pos + 3, svg_p->dt, FALSE);
+ 			/* Ifree */
+ 			lnappend(record_hdr->ust_time - svg_p->ust_time_ref,
+ 				 ((double) sfc->f_ffree) / 1000,
+@@ -4914,7 +4917,7 @@ __print_funct_t svg_print_filesystem_stats(struct activity *a, int curr, int act
+ 				 0.0,
+ 				 sfc->f_files ?
+ 				 SP_VALUE(sfc->f_ffree, sfc->f_files, sfc->f_files) : 0.0,
+-				 out + pos + 6, outsize + pos + 6, svg_p->dt);
++				 out + pos + 6, outsize + pos + 6, svg_p->dt, FALSE);
+ 		}
+ 	}
+ 
+@@ -5364,7 +5367,7 @@ __print_funct_t svg_print_psicpu_stats(struct activity *a, int curr, int action,
+ 		brappend(record_hdr->ust_time - svg_p->ust_time_ref,
+ 			 0.0,
+ 			 ((double) psic->some_cpu_total - psip->some_cpu_total) / (100 * itv),
+-			 out + 3, outsize + 3, svg_p->dt);
++			 out + 3, outsize + 3, svg_p->dt, FALSE);
+ 	}
+ 
+ 	if (action & F_END) {
+@@ -5494,7 +5497,7 @@ __print_funct_t svg_print_psiio_stats(struct activity *a, int curr, int action,
+ 		brappend(record_hdr->ust_time - svg_p->ust_time_ref,
+ 			 0.0,
+ 			 ((double) psic->some_io_total - psip->some_io_total) / (100 * itv),
+-			 out + 3, outsize + 3, svg_p->dt);
++			 out + 3, outsize + 3, svg_p->dt, FALSE);
+ 
+ 		/* %fio-10 */
+ 		lnappend(record_hdr->ust_time - svg_p->ust_time_ref,
+@@ -5512,7 +5515,7 @@ __print_funct_t svg_print_psiio_stats(struct activity *a, int curr, int action,
+ 		brappend(record_hdr->ust_time - svg_p->ust_time_ref,
+ 			 0.0,
+ 			 ((double) psic->full_io_total - psip->full_io_total) / (100 * itv),
+-			 out + 7, outsize + 7, svg_p->dt);
++			 out + 7, outsize + 7, svg_p->dt, FALSE);
+ 	}
+ 
+ 	if (action & F_END) {
+@@ -5646,7 +5649,7 @@ __print_funct_t svg_print_psimem_stats(struct activity *a, int curr, int action,
+ 		brappend(record_hdr->ust_time - svg_p->ust_time_ref,
+ 			 0.0,
+ 			 ((double) psic->some_mem_total - psip->some_mem_total) / (100 * itv),
+-			 out + 3, outsize + 3, svg_p->dt);
++			 out + 3, outsize + 3, svg_p->dt, FALSE);
+ 
+ 		/* %fmem-10 */
+ 		lnappend(record_hdr->ust_time - svg_p->ust_time_ref,
+@@ -5664,7 +5667,7 @@ __print_funct_t svg_print_psimem_stats(struct activity *a, int curr, int action,
+ 		brappend(record_hdr->ust_time - svg_p->ust_time_ref,
+ 			 0.0,
+ 			 ((double) psic->full_mem_total - psip->full_mem_total) / (100 * itv),
+-			 out + 7, outsize + 7, svg_p->dt);
++			 out + 7, outsize + 7, svg_p->dt, FALSE);
+ 	}
+ 
+ 	if (action & F_END) {
+-- 
+2.45.2
+
