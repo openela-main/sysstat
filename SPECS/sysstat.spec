@@ -1,11 +1,12 @@
 Summary: Collection of performance monitoring tools for Linux
 Name: sysstat
 Version: 12.7.6
-Release: 2%{?dist}
+Release: 4%{?dist}
 License: GPL-2.0-or-later
 
 URL: http://sebastien.godard.pagesperso-orange.fr
 Source: https://github.com/sysstat/sysstat/archive/v%{version}.tar.gz
+Source1: sysstat-tmpfiles.conf
 
 # PCP is no longer available for %%{ix86} on F40
 %if 0%{?fedora} >= 40 || 0%{?rhel} >= 10
@@ -15,6 +16,11 @@ BuildRequires: pcp-libs-devel
 %else
 BuildRequires: pcp-libs-devel
 %endif
+
+# make the sadf -s/-e documentation more accurate (RHEL-127493)
+# https://github.com/sysstat/sysstat/commit/52b0a92767a8dfe40ab3b6ca5b912c45f9448fb0
+# https://github.com/sysstat/sysstat/commit/d5687be42acdac2ccc7388733ae7a9e75372bb38
+Patch:  sysstat-12.7.6-RHEL-127493.patch
 
 BuildRequires: gcc
 BuildRequires: gettext
@@ -68,6 +74,10 @@ The cifsiostat command reports I/O statistics for CIFS file systems.
 # Do not install the license as documentation
 rm %{buildroot}%{_docdir}/%{name}/COPYING
 
+# tmpfiles config
+mkdir -p ${RPM_BUILD_ROOT}%{_tmpfilesdir}
+install -p -m 644 %SOURCE1 ${RPM_BUILD_ROOT}%{_tmpfilesdir}/%{name}.conf
+
 %post
 %systemd_post sysstat.service sysstat-collect.timer sysstat-summary.timer
 
@@ -108,8 +118,15 @@ fi
 %{_mandir}/man8/sa2.8*
 %{_mandir}/man8/sadc.8*
 %{_localstatedir}/log/sa
+%{_tmpfilesdir}/%{name}.conf
 
 %changelog
+* Mon Dec 08 2025 Lukáš Zaoral <lzaoral@redhat.com> - 12.7.6-4
+- make the sadf -s/-e documentation more accurate (RHEL-127493)
+
+* Mon Dec 01 2025 Lukáš Zaoral <lzaoral@redhat.com> - 12.7.6-3
+- fix creation of /var/log/sa in image mode (RHEL-128566)
+
 * Tue Oct 29 2024 Troy Dawson <tdawson@redhat.com> - 12.7.6-2
 - Bump release for October 2024 mass rebuild:
   Resolves: RHEL-64018

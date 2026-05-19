@@ -1,0 +1,63 @@
+From eedf8bea64163784ebce8b586a1dcb15ce085c9e Mon Sep 17 00:00:00 2001
+From: Sebastien GODARD <sysstat@users.noreply.github.com>
+Date: Mon, 10 Nov 2025 17:08:41 +0100
+Subject: [PATCH] Update sadf manual page (#416)
+
+Signed-off-by: Sebastien GODARD <sysstat@users.noreply.github.com>
+
+Cherry-picked-by: Lukáš Zaoral <lzaoral@redhat.com>
+Upstream-commit: 52b0a92767a8dfe40ab3b6ca5b912c45f9448fb0
+---
+ man/sadf.in | 7 ++-----
+ 1 file changed, 2 insertions(+), 5 deletions(-)
+
+diff --git a/man/sadf.in b/man/sadf.in
+index f47e21d..361d102 100644
+--- a/man/sadf.in
++++ b/man/sadf.in
+@@ -258,11 +258,8 @@ Output can be controlled using option
+ .br
+ .BI "\-s [ " "seconds_since_the_epoch " "]"
+ .RS
+-Set the starting time of the data, causing the
+-.B sadf
+-command to extract records time-tagged at, or following, the time
+-specified. The default starting time is 08:00:00.
+-Hours must be given in 24-hour format, or as the number of seconds
++Set the starting time of the report. The default starting
++time is 08:00:00. Hours must be given in 24-hour format, or as the number of seconds
+ since the epoch (given as a 10 digit number).
+ .RE
+ .TP
+-- 
+2.52.0
+
+From dd0ce75b33d39d820bac28a6bb8de65b5a5d027c Mon Sep 17 00:00:00 2001
+From: Sebastien GODARD <sysstat@users.noreply.github.com>
+Date: Mon, 10 Nov 2025 17:12:19 +0100
+Subject: [PATCH] Update FAQ
+
+Signed-off-by: Sebastien GODARD <sysstat@users.noreply.github.com>
+
+Cherry-picked-by: Lukáš Zaoral <lzaoral@redhat.com>
+Upstream-commit: d5687be42acdac2ccc7388733ae7a9e75372bb38
+---
+ FAQ.md | 2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/FAQ.md b/FAQ.md
+index 558ae44..2c5fa99 100644
+--- a/FAQ.md
++++ b/FAQ.md
+@@ -306,6 +306,8 @@ So with sysstat version 12.1.5, the time specified with options -s and -e
+ is now consistent with the timestamps displayed by sadf (either in UTC by
+ default or in local time with option -T), even if the output doesn't match
+ that of sar.
++Also note that the intervals corresponding to the records displayed by sadf
++must fall entirely within the range specified with options -s and -e.
+ 
+ ---
+ 2.9.<a name="2_9"></a> I cannot see all my disks when I use the sar -d command...
+-- 
+2.52.0
+
