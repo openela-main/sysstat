@@ -1,7 +1,7 @@
 Summary: Collection of performance monitoring tools for Linux
 Name: sysstat
 Version: 12.5.4
-Release: 9%{?dist}
+Release: 11%{?dist}
 License: GPLv2+
 URL: http://sebastien.godard.pagesperso-orange.fr/
 Source: https://github.com/sysstat/sysstat/archive/v%{version}.tar.gz
@@ -9,6 +9,7 @@ Source: https://github.com/sysstat/sysstat/archive/v%{version}.tar.gz
 # Use colors in sysstat output
 Source1: colorsysstat.csh
 Source2: colorsysstat.sh
+Source3: sysstat-tmpfiles.conf
 
 # arithmetic overflow in allocate_structures() on 32 bit systems (CVE-2022-39377)
 Patch1:  sysstat-12.5.4-CVE-2022-39377.patch
@@ -26,6 +27,10 @@ Patch5:  sysstat-12.5.4-bz2216805.patch
 # don't cap SVG graph output at 100% (RHEL-39002)
 # https://github.com/sysstat/sysstat/commit/808f2ef2fe7a92f8bb510ef872801e67cc600c36
 Patch6:  sysstat-12.5.4-RHEL-39002.patch
+# make the sadf -s/-e documentation more accurate (RHEL-123483)
+# https://github.com/sysstat/sysstat/commit/52b0a92767a8dfe40ab3b6ca5b912c45f9448fb0
+# https://github.com/sysstat/sysstat/commit/d5687be42acdac2ccc7388733ae7a9e75372bb38
+Patch7:  sysstat-12.5.4-RHEL-123483.patch
 
 BuildRequires: make
 BuildRequires: gcc, gettext, lm_sensors-devel, pcp-libs-devel, systemd, git
@@ -77,6 +82,10 @@ mkdir -p %{buildroot}%{_sysconfdir}/profile.d
 install -p -m 644 %{SOURCE1} %{buildroot}%{_sysconfdir}/profile.d
 install -p -m 644 %{SOURCE2} %{buildroot}%{_sysconfdir}/profile.d
 
+# tmpfiles config
+mkdir -p ${RPM_BUILD_ROOT}%{_tmpfilesdir}
+install -p -m 644 %SOURCE3 ${RPM_BUILD_ROOT}%{_tmpfilesdir}/%{name}.conf
+
 %post
 %systemd_post sysstat.service sysstat-collect.timer sysstat-summary.timer
 
@@ -101,8 +110,15 @@ fi
 %{_systemd_util_dir}/system-sleep/sysstat*
 %{_mandir}/man*/*
 %{_localstatedir}/log/sa
+%{_tmpfilesdir}/%{name}.conf
 
 %changelog
+* Mon Dec 08 2025 Lukáš Zaoral <lzaoral@redhat.com> - 12.5.4-11
+- make the sadf -s/-e documentation more accurate (RHEL-123483)
+
+* Mon Dec 01 2025 Lukáš Zaoral <lzaoral@redhat.com> - 12.5.4-10
+- fix creation of /var/log/sa in image mode (RHEL-129980)
+
 * Tue Jul 30 2024 Lukáš Zaoral <lzaoral@redhat.com> - 12.5.4-9
 - don't cap SVG graph output at 100% (RHEL-39002)
 

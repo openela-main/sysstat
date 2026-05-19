@@ -1,0 +1,65 @@
+From 94477599ab42d54de172ea60d82fc483d16b025e Mon Sep 17 00:00:00 2001
+From: Sebastien GODARD <sysstat@users.noreply.github.com>
+Date: Mon, 10 Nov 2025 17:08:41 +0100
+Subject: [PATCH] Update sadf manual page (#416)
+
+Signed-off-by: Sebastien GODARD <sysstat@users.noreply.github.com>
+
+Cherry-picked-by: Lukáš Zaoral <lzaoral@redhat.com>
+Upstream-commit: 52b0a92767a8dfe40ab3b6ca5b912c45f9448fb0
+---
+ man/sadf.in | 7 ++-----
+ 1 file changed, 2 insertions(+), 5 deletions(-)
+
+diff --git a/man/sadf.in b/man/sadf.in
+index f953559..873a60a 100644
+--- a/man/sadf.in
++++ b/man/sadf.in
+@@ -242,11 +242,8 @@ Output can be controlled using option
+ .BR "-O " "(see above)."
+ .TP
+ .BI "-s [ " "hh" ":" "mm" "[:" "ss" "] ]"
+-Set the starting time of the data, causing the
+-.B sadf
+-command to extract records time-tagged at, or following, the time
+-specified. The default starting time is 08:00:00.
+-Hours must be given in 24-hour format.
++Set the starting time of the report. The default starting
++time is 08:00:00. Hours must be given in 24-hour format.
+ .TP
+ .B -T
+ Display timestamp in local time instead of UTC (Coordinated Universal Time).
+-- 
+2.52.0
+
+From 6754280be3034f3b732fc73b989b1b77e16c7328 Mon Sep 17 00:00:00 2001
+From: Sebastien GODARD <sysstat@users.noreply.github.com>
+Date: Mon, 10 Nov 2025 17:12:19 +0100
+Subject: [PATCH] Update FAQ
+
+Signed-off-by: Sebastien GODARD <sysstat@users.noreply.github.com>
+
+Cherry-picked-by: Lukáš Zaoral <lzaoral@redhat.com>
+Upstream-commit: d5687be42acdac2ccc7388733ae7a9e75372bb38
+---
+ FAQ.md | 4 +++-
+ 1 file changed, 3 insertions(+), 1 deletion(-)
+
+diff --git a/FAQ.md b/FAQ.md
+index cda3e41..a07dba2 100644
+--- a/FAQ.md
++++ b/FAQ.md
+@@ -280,7 +280,9 @@ options -s and -e didn't work properly.
+ So with sysstat version 12.1.5, the time specified with options -s and -e
+ is now consistent with the timestamps displayed by sadf (either in UTC by
+ default or in local time with option -T), even if the output doesn't match
+-that of sar.
++that of sar.
++Also note that the intervals corresponding to the records displayed by sadf
++must fall entirely within the range specified with options -s and -e.
+ 
+ ---
+ 2.9.<a name="2_9"></a> I cannot see all my disks when I use the sar -d command...
+-- 
+2.52.0
+
